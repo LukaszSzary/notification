@@ -21,6 +21,10 @@ public class OrderListener {
 
         log.info("Powiadomienie: zamówienie {} klienta {} (partycja {}, offset {})",
                 event.orderId(), event.customerId(), partition, offset);
+
+        if (event.quantity() > 100){
+            throw new IllegalStateException("Quantity > 100 " + event.quantity());
+        }
     }
 
 }
