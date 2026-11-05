@@ -15,9 +15,12 @@ java {
 
 repositories {
 	mavenCentral()
+	maven { url 'https://packages.confluent.io/maven/' }
 }
 
 dependencies {
+	implementation project(':events')
+	implementation 'io.confluent:kafka-avro-serializer:8.0.1'
 	implementation 'org.springframework.boot:spring-boot-starter-kafka'
 	implementation 'org.springframework.boot:spring-boot-starter-jackson'
 	implementation project(':events')

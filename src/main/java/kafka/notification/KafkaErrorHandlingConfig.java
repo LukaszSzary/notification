@@ -1,9 +1,12 @@
 package kafka.notification;
 
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import kafka.events.OrderCreated;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -13,7 +16,6 @@ import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
-import org.springframework.kafka.support.serializer.JacksonJsonSerializer;
 import org.springframework.kafka.support.serializer.DelegatingByTypeSerializer;
 import org.springframework.util.backoff.FixedBackOff;
 
@@ -23,16 +25,24 @@ import java.util.Map;
 public class KafkaErrorHandlingConfig {
     @Bean
     public KafkaTemplate<String, Object> dltKafkaTemplate(
-            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers){
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers,
+            @Value("${spring.kafka.consumer.properties.schema.registry.url}") String registryUrl){
 
-        var valueSerializer = new DelegatingByTypeSerializer(Map.of(
+        var avroSerializer = new KafkaAvroSerializer();
+        avroSerializer.configure(Map.of("schema.registry.url", registryUrl), false);
+
+        Map<Class<?>, Serializer<?>> serializers = Map.of(
                 byte[].class, new ByteArraySerializer(),
-                OrderCreated.class, new JacksonJsonSerializer<OrderCreated>()));
+                OrderCreated.class, avroSerializer);
+
+        var valueSerializer = new DelegatingByTypeSerializer(serializers);
 
         var producerFactory = new DefaultKafkaProducerFactory<String, Object>(
-                Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers),
-                        new StringSerializer(),
-                        valueSerializer);
+                Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers,
+                        "schema.registry.url", registryUrl),
+                new StringSerializer(),
+                valueSerializer);
+
         return new KafkaTemplate<>(producerFactory);
     }
 

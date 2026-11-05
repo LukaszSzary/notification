@@ -7,6 +7,7 @@ import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
+import kafka.events.OrderCreated;
 
 @Component
 public class OrderListener {
@@ -19,11 +20,11 @@ public class OrderListener {
             @Header(KafkaHeaders.RECEIVED_PARTITION) int partition,
             @Header(KafkaHeaders.OFFSET) long offset) {
 
-        log.info("Powiadomienie: zamówienie {} klienta {} (partycja {}, offset {})",
-                event.orderId(), event.customerId(), partition, offset);
+        log.info("Notification: order {} of customer {} (partition {}, offset {})",
+                event.getOrderId(), event.getCustomerId(), partition, offset);
 
-        if (event.quantity() > 100){
-            throw new IllegalStateException("Quantity > 100 " + event.quantity());
+        if (event.getQuantity() > 100){
+            throw new IllegalStateException("Quantity > 100 " + event.getQuantity());
         }
     }
 
